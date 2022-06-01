@@ -20,3 +20,14 @@ span
 {
 	padding-right: 10px;
 }
+
+#example-table
+{
+	height: 505px;
+	background-color: white;
+}
+
+button 
+{
+	margin-top: 10px;
+}

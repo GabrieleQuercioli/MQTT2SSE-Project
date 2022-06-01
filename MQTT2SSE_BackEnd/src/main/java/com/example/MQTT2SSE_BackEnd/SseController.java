@@ -11,18 +11,19 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import static java.time.temporal.ChronoUnit.SECONDS;
 
 @RestController
 public class SseController {
 
-    public static Multimap<Pair<String,SseEmitter>,String> emitters = ArrayListMultimap.create(); //K: <UserID,Emitter> V: Topic
+    //K: <UserID,Emitter> V: Topic
+    public static Multimap<Pair<String,SseEmitter>,String> emitters = ArrayListMultimap.create();
 
     //This map contains the last message sent by the broker for each topic
-    public static Map<String,String> statusMessages = new HashMap<String, String>();
+    public static Map<String,StatusMessage> statusMessages = new HashMap<String, StatusMessage>();
+
     private static int msgID = 2;
 
     // method for client subscription, permits the connection releasing a SSE-emitter
@@ -30,31 +31,67 @@ public class SseController {
     //FIXME HTTP/1.1 permits max 6 connections with the same host
     @CrossOrigin
     @RequestMapping(value = "/subscribe", consumes = MediaType.ALL_VALUE) //define the endpoint for the REST request
-    public SseEmitter subscribe(@RequestParam String userID, @RequestParam String topic) throws IOException {
+    public SseEmitter subscribe(@RequestParam String userID, @RequestParam String topic) throws IOException, InterruptedException {
+        if (topic.contains("*"))
+            topic = topic.replace("*","#");
         //If the client is not subscribed already to topic, creates a new tupla with associated emitter
         if (searchEmitter(userID, topic) == null) {
-        //if (searchEmitter(userID) == null) {
-            //SseEmitter is the object that holds the connection between Client and Server
+            //SseEmitter is the object that holds the connection between Client (WEB) and Server (THIS)
             SseEmitter sseEmitter = new SseEmitter(Long.MAX_VALUE); //the time in millis before the emitter get timed-out
             sendInitEvent(sseEmitter, topic);
             emitters.put(new Pair<String, SseEmitter>(userID, sseEmitter), topic);
 
-            //FIXME stesso problema: il Topic della sub (/floud/../#) non corrisponde a quello che arriva dal broker
-            // (ex. /floud/../a45ed2d1)
-            String statusPayload = statusMessages.get(topic);
-            System.out.println("Lo status message è: " + statusPayload);
-            System.out.println("Status Messages Queue: " + statusMessages);
+            //When subscribe with wildcard, get the status msg for each topic.
+            // Otherwise, only the one for the subscribed topic
+            try {
+                String statusPayload;
+                //FIXME il perchè di @ invece di # è scritto sul commento di searchByTopic() sotto
+                if (topic.contains("#"))
+                    for (String key : statusMessages.keySet()) {
+                        statusPayload = statusMessages.get(key).getStatusPayload();
+                        System.out.println("Lo status message è: " + statusPayload);
+                        System.out.println("Status Messages Queue: " + statusMessages);
+                        if (statusPayload != null) {
+                            String eventFormatted = getEventFormatted(key,statusPayload);
+                            sseEmitter.send(SseEmitter.event().id("msg ID: " + 1).name("diagnosys").data(eventFormatted));
+                        }
+                    }
+                else {
+                    statusPayload = statusMessages.get(topic).getStatusPayload();
+                    System.out.println("Lo status message è: " + statusPayload);
+                    System.out.println("Status Messages Queue: " + statusMessages);
 
-            if (statusPayload != null) {
-                String eventFormatted = getEventFormatted(topic,statusPayload);
-                sseEmitter.send(SseEmitter.event().id("msg ID: " + 1).name("latestNews").data(eventFormatted));
+                    if (statusPayload != null) {
+                        String eventFormatted = getEventFormatted(topic, statusPayload);
+                        sseEmitter.send(SseEmitter.event().id("msg ID: " + 1).name("diagnosys").data(eventFormatted));
+                    }
+                }
+            } catch (NullPointerException e) {
+                System.out.println("Non ci sono messaggi di status");
             }
+
+
+            //FIXME deve essere fatto in modo che il server invii eventi periodici di controllo
+            // a tutti gli emitter della mappa per capire se sono ancora connessi o no
+            /*
+            try {
+                while (true){
+                    System.out.println("PING");
+                    sseEmitter.send(SseEmitter.event().id("msg ID: " + 1000).name("PING"));
+                    Thread.sleep(20000L);
+                }
+            } catch (IOException e) {
+                sseEmitter.completeWithError(e);
+            }*/
+
 
             //emitters.put(userID, sseEmitter);
             //emitters.add(sseEmitter);
-            //lambda func to remove emitters already completed from the list
-            sseEmitter.onCompletion(() -> { //FIXME non funziona più (dovuto alla singola conn. TCP di HTTP/2?)
-                emitters.remove(new Pair<String, SseEmitter>(userID, sseEmitter), topic);
+
+            //When an emitter is completed (the data stream is finished & connection closed), removes it from multimap
+            String finalTopic = topic;
+            sseEmitter.onCompletion(() -> {
+                emitters.remove(new Pair<String, SseEmitter>(userID, sseEmitter), finalTopic);
                 System.out.println("The emitter: " + sseEmitter + " of Client: " + userID + " is completed");
             });
             //FIXME funziona bene in tutti i casi, tranne qualche volta quando disconnetto più client contemporaneamente
@@ -108,7 +145,7 @@ public class SseController {
             SseEmitter emitter = pair.getValue();
             try {
                 //send the event for each emitter
-                emitter.send(SseEmitter.event().id("msg ID: " + msgID++).name("latestNews").data(eventFormatted));
+                emitter.send(SseEmitter.event().id("msg ID: " + msgID++).name("diagnosys").data(eventFormatted));
             } catch (IOException e) {
                 System.out.println("Dispatcher Error");
             }
@@ -118,7 +155,8 @@ public class SseController {
     private static ArrayList<Pair<String,SseEmitter>> searchByTopic(String topic) {
         ArrayList<Pair<String,SseEmitter>> emitter = new ArrayList<Pair<String, SseEmitter>>();
         for (Map.Entry<Pair<String, SseEmitter>, String> it : emitters.entries()){
-            if (it.getValue().equals(topic)){
+            //FIXME dovrebbe controllare il char '#', ma nell'input sulla pagina web non riconosce il carattere
+            if (it.getValue().equals(topic) || it.getValue().contains("#")){
                 System.out.println(it.getKey());
                 emitter.add(it.getKey());
             }
@@ -140,24 +178,14 @@ public class SseController {
         return sseEmitter;
     }
 
-    /*private static SseEmitter searchEmitter(String userID) {
-        SseEmitter sseEmitter = null;
-        for (Map.Entry<Pair<String, SseEmitter>, String> it : emitters.entries()){
-            if (it.getKey().getKey().equals(userID)){
-                // System.out.println(it.getKey().getKey());
-                sseEmitter = it.getKey().getValue();
-            }
-        }
-        return sseEmitter;
-    }*/
-
-    public static void addStatusMessage(String topic, String payload) {
-        statusMessages.put(topic,payload);
+    public static void addStatusMessage(String topic, StatusMessage sm) {
+        statusMessages.put(topic,sm);
     }
 
     public static void unsubscribeTopic(String user, String topic) {
         //SseEmitter sseEmitter = searchEmitter(user,topic);
-        String topicWithSlashes = topic.replace("-","/"); //FIXME soluzione tampone
+        //String topicWithSlashes = topic.replace("-","/"); //FIXME soluzione tampone
+        String topicWithSlashes = MqttController.adjustJSONstringFormat(topic);
         System.out.println("topic da disiscrivere: " + topicWithSlashes);
         SseEmitter sseEmitter = searchEmitter(user,topicWithSlashes);
         try {
@@ -185,10 +213,19 @@ public class SseController {
         //System.out.println("FPS: " + fps);
         String res = jsonPayload.getString("res");
         //System.out.println("Resolution: " + resolution);
+        //System.out.println("Status Messages: " + statusMessages);
+        long secSinceLast = 0L;
+        if (statusMessages.get(topic) != null) { //calculate in sec the time since last message for this topic was sent
+            secSinceLast = SECONDS.between(statusMessages.get(topic).getDateWhenIsSent(), LocalDateTime.now());
+            System.out.println("Seconds since last for this topic: " + secSinceLast);
+        }
+        else {
+            System.out.println("First message in the topic");
+        }
 
         //stringify the JSON msg
         return new JSONObject().put("title", topic).put("device", ip)
-                .put("operation", op).put("fps", fps).put("resolution", res).toString();
+                .put("operation", op).put("fps", fps).put("resolution", res).put("tslm", secSinceLast).toString();
     }
 
     private static String decryptIP(String device) {

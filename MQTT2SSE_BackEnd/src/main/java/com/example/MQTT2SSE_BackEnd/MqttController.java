@@ -34,11 +34,12 @@ public class MqttController {
     public ResponseEntity<?> unsubscribeTopic(@RequestBody String mqttMessage) {
         try {
             System.out.println(mqttMessage);
-            //FIXME soluzione tampone perchè ha problemi a convertire stringhe con il carattere '/'
-            String topicAdjusted = mqttMessage.replace("/","-");
+            //String topicAdjusted = mqttMessage.replace("/","-");
+            //FIXME soluzione tampone
+            String topicAdjusted = adjustJSONstringFormat(mqttMessage);
             System.out.println(topicAdjusted);
             JSONObject convertObject = new JSONObject(topicAdjusted);
-            //System.out.println(convertObject);
+            System.out.println(convertObject);
             String topic = convertObject.get("topic").toString();
             //System.out.println(topic);
             String userID = convertObject.get("user").toString();
@@ -50,6 +51,24 @@ public class MqttController {
             e.printStackTrace();
             return ResponseEntity.ok("Fail");
         }
+    }
+
+    //function that replace characters forbidden in JSON format
+    public static String adjustJSONstringFormat(String toAdjust) {
+        String adjusted = toAdjust;
+        if (toAdjust.contains("/") || toAdjust.contains("#")) {
+            if (toAdjust.contains("/"))
+                adjusted = toAdjust.replace("/", "*");
+            if (toAdjust.contains("#"))
+                adjusted = adjusted.replace("#", "§");
+        }
+        else {
+            if (toAdjust.contains("*"))
+                adjusted = toAdjust.replace("*", "/");
+            if (toAdjust.contains("§"))
+                adjusted = adjusted.replace("§", "#");
+        }
+        return adjusted;
     }
 
 

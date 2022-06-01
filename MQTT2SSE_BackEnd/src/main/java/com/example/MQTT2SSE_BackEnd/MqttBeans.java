@@ -77,7 +77,8 @@ public class MqttBeans {
                 //NewsSSEController nssec = new NewsSSEController();
                 try {
                     SseController.dispatchEventsToClients(topic, payload);
-                    SseController.addStatusMessage(topic, payload);
+                    //SseController.addStatusMessage(topic, payload);
+                    SseController.addStatusMessage(topic, new StatusMessage(payload));
                     //SseController.addStatusMessage("/floud/autocounter/diag/", payload);
                 } catch (MessageHandlingException mhe) {
                     System.out.println("Message Handling Error");

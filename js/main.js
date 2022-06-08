@@ -1,5 +1,4 @@
 //import {Tabulator} from 'tabulator-tables';
-//$(document).ready(function() {
 
 var table;
 
@@ -8,13 +7,6 @@ var table;
 $(document).ready(function() {
 	var tabledata = [
 	    //{id:1, title:"floud/Dev001", device:"Dev001", operation:" ", fps:"60", resolution:"120x60"},
-	    //{id:2, title:"floud/Dev002", device:"Dev002", operation:"reset", fps:"20", resolution:"140x70"},
-	    //{id:3, title:"floud/Dev003", device:"Dev003", operation:" ", fps:"40", resolution:"110x80"},
-	    /*
-	    {id:4, name:"Brendon Philips", progress:100, gender:"male", rating:1, col:"orange", dob:"01/08/1980"},
-	    {id:5, name:"Margret Marmajuke", progress:16, gender:"female", rating:5, col:"yellow", dob:"31/01/1999"},
-	    {id:6, name:"Frank Harbours", progress:38, gender:"male", rating:4, col:"red", dob:"12/05/1966", car:1},
-	    */
 	];
 
     table = new Tabulator("#example-table", {
@@ -39,12 +31,6 @@ $(document).ready(function() {
         {title:"FPS", field:"fps"},
         {title:"Resolution", field:"resolution"},
         {title:"Sec since last", field:"tslm"},
-        /*{title:"Task Progress", field:"progress", hozAlign:"left", formatter:"progress", editor:true},
-        {title:"Gender", field:"gender", width:95, editor:"select", editorParams:{values:["male", "female"]}},
-        {title:"Rating", field:"rating", formatter:"star", hozAlign:"center", width:100, editor:true},
-        {title:"Color", field:"col", width:130, editor:"input"},
-        {title:"Date Of Birth", field:"dob", width:130, sorter:"date", hozAlign:"center"},
-        {title:"Driver", field:"car", width:90,  hozAlign:"center", formatter:"tickCross", sorter:"boolean", editor:true},*/
     ],
 	});
 
@@ -63,24 +49,13 @@ $(document).ready(function() {
 			var topic = document.forms["connform"]["topic"].value;
 			
 			if(topic.includes("#"))
-		 		 topic = topic.replace('#','*'); //perchè l'encoding non riconosce il char '#'
+		 		topic = topic.replace('#','*'); //perchè Eventsource non riconosce il char '#' nell'url che usa per la chiamata
 			console.log(topic);
-
-			/*if(document.getElementById('wildcard').clicked == true)
-			{
-				alert("button was clicked");
-			    topic = "/floud/autocounter/diag/#"
-			}*/
 
 			//usa l'url specificato in back-end per richiedere la connessione al server sul giusto canale
 			var url = "http://"+s+":"+p+"/"+ep+"?userID="+user+"&topic="+topic; 
 			//tramite l'oggetto EventSource si mette in ascolto di event Emitters che gli faranno pervenire gli eventi
-			var eventSource = new EventSource(url); 
-			
-			/* //non fa visualizzare in console il messaggio
-			eventSource.onMessage = function(evt) {
-				console.log(evt.data);
-			}*/
+			var eventSource = new EventSource(url);
 
 			//'open' e 'error' sono evnti predefiniti, non vanno definiti nel back-end
 			eventSource.addEventListener("open", (event) => {
@@ -108,10 +83,6 @@ $(document).ready(function() {
 				document.getElementById('subList').appendChild(listTop);
 			});
 
-			/*eventSource.addEventListener("PING", (event) => {
-				console.log("PING");
-			});*/
-
 			//‘error’ event will be called whenever there is a network error 
 			//and also when the server closes the connection by calling a 'complete’ or ‘completeWithError’ method on the emitter.
 			eventSource.addEventListener("error", function(event){
@@ -133,34 +104,20 @@ $(document).ready(function() {
 
 			return false;
 		}
-		
-		
-	//});
 
 	window.onBeforeunload = function() {
 		eventSource.close();
 	}
 
 	/*function addBlock(title,device,operation,fps,resolution) {
-		//var a = document.createElement('article');
-		//var a = document.createElement('br'); //FIXME soluzione tampone
+		var a = document.createElement('article');
 		var h = document.createElement('h3');
 		var t = document.createTextNode(title);
 		h.appendChild(t);
 		var dev = document.createElement('span');
 		dev.innerHTML = device;
-		var op = document.createElement('span');
-		op.innerHTML = operation;
-		var fPs = document.createElement('span');
-		fPs.innerHTML = fps;
-		var res = document.createElement('span');
-		res.innerHTML = resolution;
-		a.appendChild(h);
-		a.appendChild(dev);
-		a.appendChild(op);
-		a.appendChild(fPs);
-		a.appendChild(res); 
-		//document.getElementById('pack').appendChild(a);
+		a.appendChild(h); 
+		document.getElementById('pack').appendChild(a);
 	}*/
 
 	const unsubscribeTopic = async () => {
@@ -183,32 +140,3 @@ $(document).ready(function() {
 	  	if (response.status != 200)
 	  		console.log(error);
 	}
-
-	/*var the_action = function(type) {
-    switch(type) {
-        case 'a':
-            console.log('Case A');
-            break;
-         case 'b':
-            console.log('Case B');
-            break;
-    	}
-	};
-
-	$('.wildcard').click(function() { 
-	    console.log('Clicked');
-	    $(this).data('clicked', true);
-	});
-
-	$('.submi').click(function() {
-	    // All your logic can go here if you want.
-	    if($('.wildcard').data('clicked') == true) {
-	        the_action('a');
-	    } else {
-	        the_action('b');
-	    }
-	});*/
-
-
-
-	

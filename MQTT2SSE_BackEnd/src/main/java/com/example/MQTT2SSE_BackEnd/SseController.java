@@ -28,12 +28,13 @@ public class SseController {
 
     // method for client subscription, permits the connection releasing a SSE-emitter
     // that allows clients to listen the specified channel for receiving the events from the server-side
-    //FIXME HTTP/1.1 permits max 6 connections with the same host
+    // HTTP/1.1 permits max 6 connections with the same host
     @CrossOrigin
     @RequestMapping(value = "/subscribe", consumes = MediaType.ALL_VALUE) //define the endpoint for the REST request
-    public SseEmitter subscribe(@RequestParam String userID, @RequestParam String topic) throws IOException, InterruptedException {
-        if (topic.contains("*"))
+    public SseEmitter subscribe(@RequestParam String userID, @RequestParam String topic) throws IOException {
+        if (topic.contains("*")) //Because client for request a sub with wildcard send * instead # due to encoding problem
             topic = topic.replace("*","#");
+
         //If the client is not subscribed already to topic, creates a new tupla with associated emitter
         if (searchEmitter(userID, topic) == null) {
             //SseEmitter is the object that holds the connection between Client (WEB) and Server (THIS)
@@ -41,16 +42,13 @@ public class SseController {
             sendInitEvent(sseEmitter, topic);
             emitters.put(new Pair<String, SseEmitter>(userID, sseEmitter), topic);
 
-            //When subscribe with wildcard, get the status msg for each topic.
-            // Otherwise, only the one for the subscribed topic
+            //When subscribe with wildcard, get the status msg for each topic, otherwise only one for the subscribed topic
             try {
                 String statusPayload;
-                //FIXME il perchè di @ invece di # è scritto sul commento di searchByTopic() sotto
                 if (topic.contains("#"))
                     for (String key : statusMessages.keySet()) {
                         statusPayload = statusMessages.get(key).getStatusPayload();
                         System.out.println("Lo status message è: " + statusPayload);
-                        System.out.println("Status Messages Queue: " + statusMessages);
                         if (statusPayload != null) {
                             String eventFormatted = getEventFormatted(key,statusPayload);
                             sseEmitter.send(SseEmitter.event().id("msg ID: " + 1).name("diagnosys").data(eventFormatted));
@@ -60,7 +58,6 @@ public class SseController {
                     statusPayload = statusMessages.get(topic).getStatusPayload();
                     System.out.println("Lo status message è: " + statusPayload);
                     System.out.println("Status Messages Queue: " + statusMessages);
-
                     if (statusPayload != null) {
                         String eventFormatted = getEventFormatted(topic, statusPayload);
                         sseEmitter.send(SseEmitter.event().id("msg ID: " + 1).name("diagnosys").data(eventFormatted));
@@ -70,41 +67,13 @@ public class SseController {
                 System.out.println("Non ci sono messaggi di status");
             }
 
-
-            //FIXME deve essere fatto in modo che il server invii eventi periodici di controllo
-            // a tutti gli emitter della mappa per capire se sono ancora connessi o no
-            /*
-            try {
-                while (true){
-                    System.out.println("PING");
-                    sseEmitter.send(SseEmitter.event().id("msg ID: " + 1000).name("PING"));
-                    Thread.sleep(20000L);
-                }
-            } catch (IOException e) {
-                sseEmitter.completeWithError(e);
-            }*/
-
-
-            //emitters.put(userID, sseEmitter);
-            //emitters.add(sseEmitter);
-
-            //When an emitter is completed (the data stream is finished & connection closed), removes it from multimap
+            //When an emitter is completed (connection was closed after a message was sent completely), removes it from multimap
             String finalTopic = topic;
             sseEmitter.onCompletion(() -> {
                 emitters.remove(new Pair<String, SseEmitter>(userID, sseEmitter), finalTopic);
                 System.out.println("The emitter: " + sseEmitter + " of Client: " + userID + " is completed");
             });
-            //FIXME funziona bene in tutti i casi, tranne qualche volta quando disconnetto più client contemporaneamente
-            //sseEmitter.onCompletion(() -> emitters.remove(sseEmitter));
-            /*sseEmitter.onError((e) -> {
-            //emitters.remove(new Pair<String, SseEmitter>(userID, sseEmitter), topic);
-            System.out.println("The emitter: " + sseEmitter + " of Client: " + userID + " had an error");
-            });*/
-            /*sseEmitter.onTimeout(() -> {
-                //emitters.remove(new Pair<String, SseEmitter>(userID, sseEmitter), topic);
-                System.out.println("The emitter: " + sseEmitter + " of Client: " + userID + " went in timeout");
-            });*/
-            //FIXME funziona bene se disconnetto un client, ma se poi lo riconnetto e disconnetto un altro contemp esplode
+
             return sseEmitter;
         }
         else {
@@ -155,7 +124,6 @@ public class SseController {
     private static ArrayList<Pair<String,SseEmitter>> searchByTopic(String topic) {
         ArrayList<Pair<String,SseEmitter>> emitter = new ArrayList<Pair<String, SseEmitter>>();
         for (Map.Entry<Pair<String, SseEmitter>, String> it : emitters.entries()){
-            //FIXME dovrebbe controllare il char '#', ma nell'input sulla pagina web non riconosce il carattere
             if (it.getValue().equals(topic) || it.getValue().contains("#")){
                 System.out.println(it.getKey());
                 emitter.add(it.getKey());
@@ -183,15 +151,13 @@ public class SseController {
     }
 
     public static void unsubscribeTopic(String user, String topic) {
-        //SseEmitter sseEmitter = searchEmitter(user,topic);
-        //String topicWithSlashes = topic.replace("-","/"); //FIXME soluzione tampone
-        String topicWithSlashes = MqttController.adjustJSONstringFormat(topic);
-        System.out.println("topic da disiscrivere: " + topicWithSlashes);
-        SseEmitter sseEmitter = searchEmitter(user,topicWithSlashes);
+        String topicAdjusted = MqttController.adjustJSONstringFormat(topic);
+        System.out.println("topic da disiscrivere: " + topicAdjusted);
+        SseEmitter sseEmitter = searchEmitter(user,topicAdjusted);
         try {
             if (sseEmitter != null) {
                 System.out.println("Unsubscribing...");
-                emitters.remove(new Pair<String,SseEmitter>(user, sseEmitter),topicWithSlashes);
+                emitters.remove(new Pair<String,SseEmitter>(user, sseEmitter),topicAdjusted);
             }
             else
                 System.out.println("Non si può disiscriversi da un topic di cui non si è iscritti");

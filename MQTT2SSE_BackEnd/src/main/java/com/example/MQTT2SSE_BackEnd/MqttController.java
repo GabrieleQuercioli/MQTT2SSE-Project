@@ -1,5 +1,7 @@
 package com.example.MQTT2SSE_BackEnd;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +39,7 @@ public class MqttController {
             //String topicAdjusted = mqttMessage.replace("/","-");
             //FIXME soluzione tampone
             String topicAdjusted = adjustJSONstringFormat(mqttMessage);
-            System.out.println(topicAdjusted);
+            //System.out.println(topicAdjusted);
             JSONObject convertObject = new JSONObject(topicAdjusted);
             System.out.println(convertObject);
             String topic = convertObject.get("topic").toString();
@@ -70,6 +72,4 @@ public class MqttController {
         }
         return adjusted;
     }
-
-
 }

@@ -38,105 +38,91 @@ $(document).ready(function() {
 
 	/* FINISH */
 
-		function checkConnection() {
-			//var s = document.forms["connform"]["server"].value;
-			var s = "localhost";
-			//var p = document.forms["connform"]["port"].value;
-			var p = "6033";
-			//var ep = document.forms["connform"]["endpoint"].value;
-			var ep = "subscribe";
-			var user = document.forms["connform"]["userID"].value;
-			var topic = document.forms["connform"]["topic"].value;
-			
-			if(topic.includes("#"))
-		 		topic = topic.replace('#','*'); //perchè Eventsource non riconosce il char '#' nell'url che usa per la chiamata
-			console.log(topic);
-
-			//usa l'url specificato in back-end per richiedere la connessione al server sul giusto canale
-			var url = "http://"+s+":"+p+"/"+ep+"?userID="+user+"&topic="+topic; 
-			//tramite l'oggetto EventSource si mette in ascolto di event Emitters che gli faranno pervenire gli eventi
-			var eventSource = new EventSource(url);
-
-			//'open' e 'error' sono evnti predefiniti, non vanno definiti nel back-end
-			eventSource.addEventListener("open", (event) => {
-				console.log('connection is live');
-				$("#status").html("Connected");
-				$("#status").css("background-color", "green");
-			});
-
-			//gestisce gli eventi dell'emitter chiamati 'latestNews' sulla parte di Back-End, il secondo parametro è una funzione di call-back 
-			//che prende e gestisce il messaggio arrivato dall'evento del server, questo mi permette di poter gestire diversamente eventi di tipo diverso arrivati dal server
-			eventSource.addEventListener("diagnosys", function(event){
-				console.log(event.lastEventId);
-				table.addData(event.data, true); //add new row to table with the json data, if the 2nd value is false add new row in bottom place
-				//var articleData = JSON.parse(event.data);
-				//addBlock(articleData.title, articleData.device, articleData.operation, articleData.fps, articleData.resolution);
-			});
-
-			eventSource.addEventListener("INIT", (event) => {
-				var jsonParsedData = JSON.parse(event.data);
-				var t = document.createTextNode(jsonParsedData.topic);
-				var listTop = document.createElement('li');
-				listTop.id = 'id-'+jsonParsedData.topic;
-				listTop.className = 'subscription';
-				listTop.appendChild(t);
-				document.getElementById('subList').appendChild(listTop);
-			});
-
-			//‘error’ event will be called whenever there is a network error 
-			//and also when the server closes the connection by calling a 'complete’ or ‘completeWithError’ method on the emitter.
-			eventSource.addEventListener("error", function(event){
-				console.log("Error: " + event.currentTarget.readyState);
-				if (event.currentTarget.readyState == EventSource.CLOSED) {
-					console.log('eventSource.CLOSED');
-				}
-				else{
-					$("#status").html("Disconnected");
-					$("#status").css("background-color", "red");
-					const topics = document.querySelectorAll('.subscription');
-					topics.forEach(topic => {
-					  topic.remove();
-					});
-
-					eventSource.close();
-				}
-			});
-
-			return false;
-		}
-
-	window.onBeforeunload = function() {
-		eventSource.close();
-	}
-
-	/*function addBlock(title,device,operation,fps,resolution) {
-		var a = document.createElement('article');
-		var h = document.createElement('h3');
-		var t = document.createTextNode(title);
-		h.appendChild(t);
-		var dev = document.createElement('span');
-		dev.innerHTML = device;
-		a.appendChild(h); 
-		document.getElementById('pack').appendChild(a);
-	}*/
-
-	const unsubscribeTopic = async () => {
+	function checkConnection() {
+		//var s = document.forms["connform"]["server"].value;
+		var s = "localhost";
+		//var p = document.forms["connform"]["port"].value;
+		var p = "6033";
+		//var ep = document.forms["connform"]["endpoint"].value;
+		var ep = "subscribe";
 		var user = document.forms["connform"]["userID"].value;
 		var topic = document.forms["connform"]["topic"].value;
-		//TODO Togliere dalla lista delle iscrizioni il topic 
-		//console.log("id-"+topic)
-		const topicToRemove = document.getElementById("id-"+topic);
-		topicToRemove.remove();
-		const response = await fetch('http://localhost:6033/unsubscribe', {
-		    method: 'POST',
-		    body: 
-		    '{user: ' + user + ', topic : ' + topic + '}', 
-		    headers: {
-		      'Content-Type': 'application/json'
-		    }
-		  });
-	  	//const myJson = await response.json(); //extract JSON from the http response
-	  	// do something with myJson
-	  	if (response.status != 200)
-	  		console.log(error);
+		
+		if(topic.includes("#"))
+	 		topic = topic.replace('#','*'); //perchè Eventsource non riconosce il char '#' nell'url che usa per la chiamata
+		console.log(topic);
+
+		//usa l'url specificato in back-end per richiedere la connessione al server sul giusto canale
+		var url = "http://"+s+":"+p+"/"+ep+"?userID="+user+"&topic="+topic; 
+		//tramite l'oggetto EventSource si mette in ascolto di event Emitters che gli faranno pervenire gli eventi
+		var eventSource = new EventSource(url);
+
+		eventSource.addEventListener("open", (event) => {
+			console.log('connection is live');
+			$("#status").html("Connected");
+			$("#status").css("background-color", "green");
+		});
+
+		//gestisce gli eventi dell'emitter chiamati 'latestNews' sulla parte di Back-End, il secondo parametro è una funzione di call-back 
+		//che prende e gestisce il messaggio arrivato dall'evento del server, questo mi permette di poter gestire diversamente eventi di tipo diverso arrivati dal server
+		eventSource.addEventListener("diagnosys", function(event){
+			console.log(event.lastEventId);
+			table.addData(event.data, true); //aggiunge la nuova riga sulla tabella, true indica che la aggiunge in testa alla tabella
+		});
+
+		eventSource.addEventListener("INIT", (event) => {
+			var jsonParsedData = JSON.parse(event.data);
+			var t = document.createTextNode(jsonParsedData.topic);
+			var listTop = document.createElement('li');
+			listTop.id = 'id-'+jsonParsedData.topic;
+			listTop.className = 'subscription';
+			listTop.appendChild(t);
+			document.getElementById('subList').appendChild(listTop);
+		});
+
+		//‘error’ event will be called whenever there is a network error 
+		//and also when the server closes the connection by calling a 'complete’ or ‘completeWithError’ method on the emitter.
+		eventSource.addEventListener("error", function(event){
+			console.log("Error: " + event.currentTarget.readyState);
+			if (event.currentTarget.readyState == EventSource.CLOSED) {
+				console.log('eventSource.CLOSED');
+			}
+			else{
+				$("#status").html("Disconnected");
+				$("#status").css("background-color", "red");
+				const topics = document.querySelectorAll('.subscription');
+				topics.forEach(topic => {
+				  topic.remove();
+				});
+
+				eventSource.close();
+			}
+		});
+
+		return false;
 	}
+
+window.onBeforeunload = function() {
+	eventSource.close();
+}
+
+const unsubscribeTopic = async () => {
+	var user = document.forms["connform"]["userID"].value;
+	var topic = document.forms["connform"]["topic"].value;
+	//TODO Togliere dalla lista delle iscrizioni il topic 
+	//console.log("id-"+topic)
+	const topicToRemove = document.getElementById("id-"+topic);
+	topicToRemove.remove();
+	const response = await fetch('http://localhost:6033/unsubscribe', {
+	    method: 'POST',
+	    body: 
+	    '{user: ' + user + ', topic : ' + topic + '}', 
+	    headers: {
+	      'Content-Type': 'application/json'
+	    }
+	  });
+  	//const myJson = await response.json(); //extract JSON from the http response
+  	// do something with myJson
+  	if (response.status != 200)
+  		console.log(error);
+}

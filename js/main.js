@@ -109,7 +109,6 @@ window.onBeforeunload = function() {
 const unsubscribeTopic = async () => {
 	var user = document.forms["connform"]["userID"].value;
 	var topic = document.forms["connform"]["topic"].value;
-	//TODO Togliere dalla lista delle iscrizioni il topic 
 	//console.log("id-"+topic)
 	const topicToRemove = document.getElementById("id-"+topic);
 	topicToRemove.remove();

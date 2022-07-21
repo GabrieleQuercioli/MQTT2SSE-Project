@@ -21,9 +21,9 @@ public class MqttBeans {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
 
-        options.setServerURIs(new String[] {"tcp://159.69.51.171:1883"});
-        options.setUserName("terso");
-        String password = "2OU5GZSB04ocdsjNDTxsK";
+        options.setServerURIs(new String[] {""}); //add credentials
+        options.setUserName("");
+        String password = "";
         options.setPassword(password.toCharArray());
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);

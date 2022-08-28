@@ -16,12 +16,12 @@ public class MqttController {
     @Autowired
     public MqttGateway mqttGateway;
 
-    //For sending messages to Broker
     @CrossOrigin
     @PostMapping("/sendMessage")
     public ResponseEntity<?> publish(@RequestBody String mqttMessage) {
         try {
             System.out.println(mqttMessage);
+            //TODO controlla che sui caratteri / e # funzioni
             JSONObject convertObject = new JSONObject(mqttMessage);
             System.out.println(convertObject);
             mqttGateway.sendToMqtt(convertObject.get("message").toString(), convertObject.get("topic").toString());
@@ -31,6 +31,5 @@ public class MqttController {
             return ResponseEntity.ok("Fail");
         }
     }
-
 
 }

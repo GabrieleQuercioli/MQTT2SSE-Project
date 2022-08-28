@@ -1,5 +1,6 @@
 package com.example.MQTT2SSE_BackEnd;
 
+import com.example.MQTT2SSE_BackEnd.service.SseService;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,17 +22,21 @@ public class MqttBeans {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
 
-        options.setServerURIs(new String[] {""}); //add credentials
-        options.setUserName("");
-        String password = "";
+        //options.setServerURIs(new String[] {"tcp://192.168.68.111:1883"}); // mosquitto local
+        //options.setUserName("Gabriele05");
+        //String password = "a31453";
+        options.setServerURIs(new String[] {"tcp://159.69.51.171:1883"}); //TODO add credentials
+        options.setUserName("terso");
+        String password = "2OU5GZSB04ocdsjNDTxsK";
         options.setPassword(password.toCharArray());
+        //Sets whether the client will automatically attempt to reconnect to the server if the connection is lost.
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);
         options.setConnectionTimeout(10);
         String willMsg = "Client disconnected ungracefully";
         options.setWill("failTopic", willMsg.getBytes(), 2, false);
 
-        factory.setConnectionOptions(options);
+        factory.setConnectionOptions(options); //Mqtt connection options injected into factory
 
         return factory;
     }
@@ -39,12 +44,12 @@ public class MqttBeans {
     //Channel for subscribing
     @Bean
     public MessageChannel mqttInputChannel() {
-        return new DirectChannel();
+        return new DirectChannel(); //the connection is point 2 point
     }
 
     @Bean
     public MessageProducer inBound() {
-        //keeps listening the MQTT broker on all auto counter video-recorders
+        //Topics for which the ChannelAdapter keeps listening on are only the ones in the context
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter("GabrieleBEServer",
                 mqttClientFactory(), "/floud/autocounter/diag/#");
         adapter.setCompletionTimeout(5000);
@@ -65,9 +70,8 @@ public class MqttBeans {
                 System.out.println(message.getPayload());
                 String payload = message.getPayload().toString();
                 try {
-                    //calls the dispatcher method on sseController to send the message to the respective clients
-                    SseController.dispatchEventsToClients(topic, payload);
-                    SseController.addStatusMessage(topic, new StatusMessage(payload)); //saves the message
+                    SseService.dispatchEventsToClients(topic, payload);
+                    SseService.addStatusMessage(topic, new StatusMessage(payload)); //saves the message
                 } catch (MessageHandlingException mhe) {
                     System.out.println("Message Handling Error");
                     mhe.printStackTrace();
@@ -76,6 +80,7 @@ public class MqttBeans {
             }
         };
     }
+
 
     //Channel for publishing
     @Bean
@@ -93,4 +98,5 @@ public class MqttBeans {
         messageHandler.setDefaultTopic("#");
         return messageHandler;
     }
+
 }

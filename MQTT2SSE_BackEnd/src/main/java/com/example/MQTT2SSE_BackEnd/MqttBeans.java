@@ -22,12 +22,12 @@ public class MqttBeans {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
 
-        //options.setServerURIs(new String[] {"tcp://192.168.68.111:1883"}); // mosquitto local
-        //options.setUserName("Gabriele05");
-        //String password = "a31453";
-        options.setServerURIs(new String[] {"tcp://159.69.51.171:1883"}); //TODO add credentials
-        options.setUserName("terso");
-        String password = "2OU5GZSB04ocdsjNDTxsK";
+        //options.setServerURIs(new String[] {"tcp://id:port"}); // mosquitto local
+        //options.setUserName("user");
+        //String password = "password";
+        options.setServerURIs(new String[] {""}); //TODO add your credentials
+        options.setUserName("");
+        String password = "";
         options.setPassword(password.toCharArray());
         //Sets whether the client will automatically attempt to reconnect to the server if the connection is lost.
         options.setAutomaticReconnect(true);

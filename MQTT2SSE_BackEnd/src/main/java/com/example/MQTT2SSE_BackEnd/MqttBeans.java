@@ -22,7 +22,7 @@ public class MqttBeans {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
 
-        //options.setServerURIs(new String[] {"tcp://id:port"}); // mosquitto local
+        //options.setServerURIs(new String[] {"tcp://ip address:port"}); // mosquitto local
         //options.setUserName("user");
         //String password = "password";
         options.setServerURIs(new String[] {""}); //TODO add your credentials

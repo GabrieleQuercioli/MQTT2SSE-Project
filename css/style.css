@@ -14,6 +14,7 @@ li
 {
 	float: left;
 	padding-right: 30px;
+	list-style-type: none;
 }
 
 span
@@ -23,11 +24,29 @@ span
 
 #example-table
 {
-	height: 505px;
+	height: 520px;
 	background-color: white;
 }
 
 button 
 {
 	margin-top: 10px;
+}
+
+/* MODIFICHE */
+
+.list > button{
+	padding: 5px;
+	border: 1px solid rgb(235, 255, 123);
+	margin-left: 5px;
+	border-radius: 10px;
+	cursor: pointer;
+	margin-bottom: 5px;
+	background-color: #fff;
+}
+
+
+.list > button:hover{
+	color: #000;
+	background-color: rgba(235, 255, 123, 0.349);
 }

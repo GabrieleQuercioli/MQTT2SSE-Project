@@ -6,7 +6,7 @@ var table;
 
 $(document).ready(function() {
 	var tabledata = [
-	    //{id:1, title:"floud/Dev001", device:"Dev001", operation:" ", fps:"60", resolution:"120x60"},
+	    //{id:1, title:"/floud/autocounter/diag/eb03fhhe0583", device:"eb03fhhe0583", operation:" ", fps:"60", resolution:"120x60"}
 	];
 
     table = new Tabulator("#example-table", {
@@ -34,7 +34,51 @@ $(document).ready(function() {
     ],
 	});
 
+	/*$('#subList').on('click', function () {
+		alert('this.value')
+	} );*/
+
+	/*$('#subList').find('button').on('click', function () {
+		alert(this.value)
+		table.setFilter([
+			{field:"title", type:"=", value:this.value}
+		]);
+
+		$('#reset').show();
+	} ); */
+
+	$('#reset').on('click', function () {
+		table.clearFilter(true);
+		$('#reset').hide();
+	} ); 
+
+
+	
+
 });
+
+function search(value){
+	table.setFilter([
+		{field:"title", type:"=", value:value}
+	]);
+
+	$('#reset').show();
+}
+
+function getFunction(id){
+	let stringa = "search('" + id + "')" 
+	return stringa
+}
+
+/* function prova(testo){
+	var t = document.createTextNode(testo);
+	var listTop = document.createElement('button');
+	listTop.id = 'id-'+ testo;
+	listTop.className = 'subscription';
+	listTop.setAttribute("onclick", getFunction(testo));
+	listTop.appendChild(t);
+	document.getElementById('subList').appendChild(listTop);
+} */
 
 	/* FINISH */
 
@@ -61,6 +105,8 @@ $(document).ready(function() {
 			console.log('connection is live');
 			$("#status").html("Connected");
 			$("#status").css("background-color", "green");
+			$("#not-connected").hide()
+			$("#connected").show()
 		});
 
 		//gestisce gli eventi dell'emitter chiamati 'latestNews' sulla parte di Back-End, il secondo parametro è una funzione di call-back 
@@ -73,9 +119,10 @@ $(document).ready(function() {
 		eventSource.addEventListener("INIT", (event) => {
 			var jsonParsedData = JSON.parse(event.data);
 			var t = document.createTextNode(jsonParsedData.topic);
-			var listTop = document.createElement('li');
+			var listTop = document.createElement('button');
 			listTop.id = 'id-'+jsonParsedData.topic;
 			listTop.className = 'subscription';
+			listTop.setAttribute("onclick", getFunction(jsonParsedData.topic));
 			listTop.appendChild(t);
 			document.getElementById('subList').appendChild(listTop);
 		});
@@ -90,6 +137,8 @@ $(document).ready(function() {
 			else{
 				$("#status").html("Disconnected");
 				$("#status").css("background-color", "red");
+				$("#not-connected").show()
+				$("#connected").hide()
 				const topics = document.querySelectorAll('.subscription');
 				topics.forEach(topic => {
 				  topic.remove();
@@ -125,3 +174,4 @@ const unsubscribeTopic = async () => {
   	if (response.status != 200)
   		console.log(error);
 }
+

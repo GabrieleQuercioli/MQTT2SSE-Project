@@ -1,5 +1,3 @@
-//import {Tabulator} from 'tabulator-tables';
-
 var table;
 
 	/* START TABULATOR*/
@@ -70,15 +68,6 @@ function getFunction(id){
 	return stringa
 }
 
-/* function prova(testo){
-	var t = document.createTextNode(testo);
-	var listTop = document.createElement('button');
-	listTop.id = 'id-'+ testo;
-	listTop.className = 'subscription';
-	listTop.setAttribute("onclick", getFunction(testo));
-	listTop.appendChild(t);
-	document.getElementById('subList').appendChild(listTop);
-} */
 
 	/* FINISH */
 
@@ -109,8 +98,7 @@ function getFunction(id){
 			$("#connected").show()
 		});
 
-		//gestisce gli eventi dell'emitter chiamati 'latestNews' sulla parte di Back-End, il secondo parametro è una funzione di call-back 
-		//che prende e gestisce il messaggio arrivato dall'evento del server, questo mi permette di poter gestire diversamente eventi di tipo diverso arrivati dal server
+		
 		eventSource.addEventListener("diagnosys", function(event){
 			console.log(event.lastEventId);
 			table.addData(event.data, true); //aggiunge la nuova riga sulla tabella, true indica che la aggiunge in testa alla tabella
